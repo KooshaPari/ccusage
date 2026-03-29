@@ -17,9 +17,9 @@ Claude Code's Max plan offers unlimited usage, which is fantastic! But many user
 
 ccusage analyzes the local JSONL files that Claude Code automatically generates and provides:
 
-- **Detailed Usage Reports** - Daily, monthly, and session-based breakdowns
+- **Detailed Usage Reports** - Daily, weekly, monthly, and session-based breakdowns
 - **Cost Analysis** - Estimated costs based on token usage and model pricing
-- **Live Monitoring** - Real-time tracking of active sessions
+- **Statusline Integration** - Real-time usage display for Claude Code status bar
 - **Multiple Formats** - Beautiful tables or JSON for further analysis
 
 ## How It Works
@@ -34,7 +34,7 @@ ccusage analyzes the local JSONL files that Claude Code automatically generates 
 
 ### 🚀 Ultra-Small Bundle Size
 
-Unlike other CLI tools, we pay extreme attention to bundle size. ccusage achieves an incredibly small footprint even without minification, which means you can run it directly without installation using `bunx ccusage` for instant access.
+Unlike other CLI tools, we pay extreme attention to bundle size. ccusage achieves an incredibly small footprint even without minification, which means you can run it directly without installation using `bunx ccusage` or `BUN_BE_BUN=1 claude x ccusage` for instant access.
 
 ### 📊 Multiple Report Types
 
@@ -51,12 +51,12 @@ Unlike other CLI tools, we pay extreme attention to bundle size. ccusage achieve
 - Model-specific pricing (Opus vs Sonnet vs other models)
 - Cache token cost calculation
 
-### 📈 Live Monitoring
+### 📈 Statusline Integration
 
-- Real-time dashboard for active sessions
-- Progress bars and burn rate calculations
-- Token limit warnings and projections
-- Automatic refresh with configurable intervals
+- Compact real-time usage display for Claude Code status bar hooks
+- Session cost, daily cost, and block cost tracking
+- Burn rate calculations with visual indicators
+- Context usage percentage with color-coded alerts
 
 ### 🔧 Flexible Configuration
 

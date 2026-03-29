@@ -25,6 +25,10 @@ bunx ccusage
 pnpm dlx ccusage
 ```
 
+```bash [claude x]
+BUN_BE_BUN=1 claude x ccusage
+```
+
 :::
 
 This will show your daily usage report by default.
@@ -72,7 +76,7 @@ Now that you have your first report, explore these features:
 1. **[Weekly Reports](/guide/weekly-reports)** - Track usage patterns by week
 2. **[Monthly Reports](/guide/monthly-reports)** - See usage aggregated by month
 3. **[Session Reports](/guide/session-reports)** - Analyze individual conversations
-4. **[Live Monitoring](/guide/live-monitoring)** - Real-time usage tracking
+4. **[Statusline](/guide/statusline)** - Real-time usage display for Claude Code status bar
 5. **[Configuration](/guide/configuration)** - Customize ccusage behavior
 
 ## Common Use Cases
@@ -95,10 +99,14 @@ ccusage session
 ccusage monthly --json > usage-data.json
 ```
 
-### Live Session Monitoring
+### Real-time Status Display
+
+Add statusline to your Claude Code settings:
 
 ```bash
-ccusage blocks --live
+# Using jq to add statusline configuration
+jq '.statusLine = {"type": "command", "command": "bun x ccusage statusline", "padding": 0}' \
+  ~/.config/claude/settings.json > tmp.json && mv tmp.json ~/.config/claude/settings.json
 ```
 
 ## Colors

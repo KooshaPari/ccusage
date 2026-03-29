@@ -6,57 +6,48 @@ on:
 
 jobs:
   lint-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-nix
+      - run: nix develop --command pnpm lint
+      - run: nix develop --command pnpm typecheck
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - run: pnpm install --frozen-lockfile
-      - name: Check jq is available
-        run: which jq && jq --version
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-nix
       - name: Create default Claude directories for tests
         run: |
           mkdir -p $HOME/.claude/projects
           mkdir -p $HOME/.config/claude/projects
-      - run: pnpm run test
+      - run: nix develop --command pnpm run test
 
   npm-publish-dry-run-and-upload-pkg-pr-now:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm dlx pkg-pr-new@0.0.60 publish --pnpm './apps/*'
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-nix
+      - run: nix develop --command pnpm pkg-pr-new publish --pnpm './apps/*'
 
   spell-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
-      - name: Checkout Actions Repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - uses: crate-ci/typos@master
-        with:
-          config: ./typos.toml
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-nix
+      - run: nix develop --command typos --config ./typos.toml
 
   schema-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - run: pnpm install --frozen-lockfile
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-nix
       - name: Generate schema files
-        run: pnpm run generate:schema
+        run: nix develop --command pnpm run generate:schema
         working-directory: apps/ccusage
       - name: Check if schema files are up-to-date
         run: |

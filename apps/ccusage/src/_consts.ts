@@ -1,4 +1,5 @@
 import { homedir } from 'node:os';
+import path from 'node:path';
 import { xdgConfig } from 'xdg-basedir';
 
 /**
@@ -41,7 +42,7 @@ export const USER_HOME_DIR = homedir();
  * XDG config directory path
  * Uses XDG_CONFIG_HOME if set, otherwise falls back to ~/.config
  */
-const XDG_CONFIG_DIR = xdgConfig ?? `${USER_HOME_DIR}/.config`;
+const XDG_CONFIG_DIR = xdgConfig ?? path.join(USER_HOME_DIR, '.config');
 
 /**
  * Default Claude data directory path (~/.claude)
@@ -53,7 +54,7 @@ export const DEFAULT_CLAUDE_CODE_PATH = '.claude';
  * Default Claude data directory path using XDG config directory
  * Uses XDG_CONFIG_HOME if set, otherwise falls back to ~/.config/claude
  */
-export const DEFAULT_CLAUDE_CONFIG_PATH = `${XDG_CONFIG_DIR}/claude`;
+export const DEFAULT_CLAUDE_CONFIG_PATH = path.join(XDG_CONFIG_DIR, 'claude');
 
 /**
  * Environment variable for specifying multiple Claude data directories
@@ -80,36 +81,9 @@ export const USAGE_DATA_GLOB_PATTERN = '**/*.jsonl';
 export const MCP_DEFAULT_PORT = 8080;
 
 /**
- * Default refresh interval in seconds for live monitoring mode
- * Used in blocks command for real-time updates
+ * Default refresh interval in seconds for statusline cache expiry
  */
 export const DEFAULT_REFRESH_INTERVAL_SECONDS = 1;
-
-/**
- * Minimum refresh interval in seconds for live monitoring mode
- * Prevents too-frequent updates that could impact performance
- */
-export const MIN_REFRESH_INTERVAL_SECONDS = 1;
-
-/**
- * Maximum refresh interval in seconds for live monitoring mode
- * Prevents too-slow updates that reduce monitoring effectiveness
- */
-export const MAX_REFRESH_INTERVAL_SECONDS = 60;
-
-/**
- * Frame rate limit for live monitoring (16ms = ~60fps)
- * Prevents terminal flickering and excessive CPU usage during rapid updates
- */
-export const MIN_RENDER_INTERVAL_MS = 16;
-
-/**
- * Burn rate thresholds for indicator display (tokens per minute)
- */
-export const BURN_RATE_THRESHOLDS = {
-	HIGH: 1000,
-	MODERATE: 500,
-} as const;
 
 /**
  * Context usage percentage thresholds for color coding
@@ -123,12 +97,20 @@ export const DEFAULT_CONTEXT_USAGE_THRESHOLDS = {
 /**
  * Days of the week for weekly aggregation
  */
-export const WEEK_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+export const WEEK_DAYS = [
+	'sunday',
+	'monday',
+	'tuesday',
+	'wednesday',
+	'thursday',
+	'friday',
+	'saturday',
+] as const;
 
 /**
  * Week day names type
  */
-export type WeekDay = typeof WEEK_DAYS[number];
+export type WeekDay = (typeof WEEK_DAYS)[number];
 
 /**
  * Day of week as number (0 = Sunday, 1 = Monday, ..., 6 = Saturday)

@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a monorepo containing multiple packages. For package-specific guidance, refer to the individual CLAUDE.md files:
 
 - **Main CLI Package**: @apps/ccusage/CLAUDE.md - Core ccusage CLI tool and library
+- **Codex CLI Package**: @apps/codex/CLAUDE.md - OpenAI Codex usage tracking CLI
+- **OpenCode CLI Package**: @apps/opencode/CLAUDE.md - OpenCode usage tracking CLI
 - **MCP Server Package**: @apps/mcp/CLAUDE.md - MCP server implementation for ccusage data
 - **Documentation**: @docs/CLAUDE.md - VitePress-based documentation website
 
@@ -15,49 +17,6 @@ Each package has its own development commands, dependencies, and specific guidel
 ### Apps Are Bundled
 
 All projects under `apps/` ship as bundled CLIs/binaries. Treat their runtime dependencies as bundled assets: list everything in each app's `devDependencies` (never `dependencies`) so the bundler owns the runtime payload.
-
-## Guide for lsmcp mcp
-
-You are a professional coding agent concerned with one particular codebase. You have
-access to semantic coding tools on which you rely heavily for all your work, as well as collection of memory
-files containing general information about the codebase. You operate in a frugal and intelligent manner, always
-keeping in mind to not read or generate content that is not needed for the task at hand.
-
-When reading code in order to answer a user question or task, you should try reading only the necessary code.
-Some tasks may require you to understand the architecture of large parts of the codebase, while for others,
-it may be enough to read a small set of symbols or a single file.
-Generally, you should avoid reading entire files unless it is absolutely necessary, instead relying on
-intelligent step-by-step acquisition of information. Use the symbol indexing tools to efficiently navigate the codebase.
-
-IMPORTANT: Always use the symbol indexing tools to minimize code reading:
-
-- Use `search_symbol_from_index` to find specific symbols quickly (after indexing)
-- Use `get_document_symbols` to understand file structure
-- Use `find_references` to trace symbol usage
-- Only read full files when absolutely necessary
-
-You can achieve intelligent code reading by:
-
-1. Using `index_files` to build symbol index for fast searching
-2. Using `search_symbol_from_index` with filters (name, kind, file, container) to find symbols
-3. Using `get_document_symbols` to understand file structure
-4. Using `get_definitions`, `find_references` to trace relationships
-5. Using standard file operations when needed
-
-## Working with Symbols
-
-Symbols are identified by their name, kind, file location, and container. Use these tools:
-
-- `index_files` - Build symbol index for files matching pattern (e.g., '\*_/_.ts')
-- `search_symbol_from_index` - Fast search by name, kind (Class, Function, etc.), file pattern, or container
-- `get_document_symbols` - Get all symbols in a specific file with hierarchical structure
-- `get_definitions` - Navigate to symbol definitions
-- `find_references` - Find all references to a symbol
-- `get_hover` - Get hover information (type signature, documentation)
-- `get_diagnostics` - Get errors and warnings for a file
-- `get_workspace_symbols` - Search symbols across the entire workspace
-
-Always prefer indexed searches (tools with `_from_index` suffix) over reading entire files.
 
 ## Development Commands
 
@@ -169,9 +128,9 @@ This is a CLI tool that analyzes Claude Code usage data from local JSONL files s
 - **External MCP Servers Available:**
   - **ESLint MCP**: Lint TypeScript/JavaScript files directly through Claude Code tools
   - **Context7 MCP**: Look up documentation for libraries and frameworks
-  - **Gunshi MCP**: Access gunshi.dev documentation and examples
-  - **Byethrow MCP**: Access @praha/byethrow documentation and examples for functional error handling
-  - **TypeScript MCP (lsmcp)**: Search for TypeScript functions, types, and symbols across the codebase
+- **Claude Code Skills Available:**
+  - **use-gunshi-cli**: Guide for using gunshi CLI framework (via @gunshi/docs)
+  - **byethrow**: Guide for using @praha/byethrow Result type (via @praha/byethrow-docs)
 
 ## Git Commit and PR Conventions
 
@@ -252,7 +211,7 @@ docs: comprehensive API documentation update
 **Error Handling:**
 
 - **Prefer @praha/byethrow Result type** over traditional try-catch for functional error handling
-  - Documentation: Available via byethrow MCP server
+  - Documentation: Available via byethrow skill (use `/byethrow` or check `.claude/skills/byethrow/`)
 - Use `Result.try()` for wrapping operations that may throw (JSON parsing, etc.)
 - Use `Result.isFailure()` for checking errors (more readable than `!Result.isSuccess()`)
 - Use early return pattern (`if (Result.isFailure(result)) continue;`) instead of ternary operators
@@ -336,10 +295,10 @@ This ensures code quality and catches issues immediately after changes.
 
 # Tips for Claude Code
 
-- [gunshi](https://gunshi.dev/llms.txt) - Documentation available via Gunshi MCP server
 - Context7 MCP server available for library documentation lookup
+- use-gunshi-cli skill available for gunshi CLI framework documentation
+- byethrow skill available for @praha/byethrow Result type documentation
 - do not use console.log. use logger.ts instead
-- **IMPORTANT**: When searching for TypeScript functions, types, or symbols in the codebase, ALWAYS use TypeScript MCP (lsmcp) tools like `get_definitions`, `find_references`, `get_hover`, etc. DO NOT use grep/rg for searching TypeScript code structures.
 - **CRITICAL VITEST REMINDER**: Vitest globals are enabled - use `describe`, `it`, `expect` directly WITHOUT imports. NEVER use `await import()` dynamic imports anywhere, especially in test blocks.
 
 # important-instruction-reminders

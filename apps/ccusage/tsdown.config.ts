@@ -13,14 +13,10 @@ export default defineConfig({
 	sourcemap: false,
 	minify: 'dce-only',
 	treeshake: true,
+	fixedExtension: false,
 	dts: {
 		tsgo: false,
-		resolve: [
-			'type-fest',
-			'valibot',
-			'@ccusage/internal',
-			'@ccusage/terminal',
-		],
+		resolve: ['type-fest', 'valibot', '@ccusage/internal', '@ccusage/terminal'],
 	},
 	publint: true,
 	unused: true,
@@ -36,5 +32,4 @@ export default defineConfig({
 	define: {
 		'import.meta.vitest': 'undefined',
 	},
-	onSuccess: 'sort-package-json',
 });

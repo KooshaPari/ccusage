@@ -17,7 +17,12 @@ import { sharedArgs } from '../_shared-args.ts';
 import { statuslineHookJsonSchema } from '../_types.ts';
 import { getFileModifiedTime, unreachable } from '../_utils.ts';
 import { calculateTotals } from '../calculate-cost.ts';
-import { calculateContextTokens, loadDailyUsageData, loadSessionBlockData, loadSessionUsageById } from '../data-loader.ts';
+import {
+	calculateContextTokens,
+	loadDailyUsageData,
+	loadSessionBlockData,
+	loadSessionUsageById,
+} from '../data-loader.ts';
 import { log, logger } from '../logger.ts';
 
 /**
@@ -39,7 +44,9 @@ function formatRemainingTime(remaining: number): string {
  * Gets semaphore file for session-specific caching and process coordination
  * Uses time-based expiry and transcript file modification detection for cache invalidation
  */
-function getSemaphore(sessionId: string): ReturnType<typeof createLimoJson<SemaphoreType | undefined>> {
+function getSemaphore(
+	sessionId: string,
+): ReturnType<typeof createLimoJson<SemaphoreType | undefined>> {
 	const semaphoreDir = join(tmpdir(), 'ccusage-semaphore');
 	const semaphorePath = join(semaphoreDir, `${sessionId}.lock`);
 
@@ -81,11 +88,8 @@ const contextThresholdSchema = v.pipe(
 		v.pipe(
 			v.string(),
 			v.trim(),
-			v.check(
-				value => /^-?\d+$/u.test(value),
-				'Context threshold must be an integer',
-			),
-			v.transform(value => Number.parseInt(value, 10)),
+			v.check((value) => /^-?\d+$/u.test(value), 'Context threshold must be an integer'),
+			v.transform((value) => Number.parseInt(value, 10)),
 		),
 	]),
 	v.number('Context threshold must be a number'),
@@ -100,7 +104,8 @@ function parseContextThreshold(value: string): number {
 
 export const statuslineCommand = define({
 	name: 'statusline',
-	description: 'Display compact status line for Claude Code hooks with hybrid time+file caching (Beta)',
+	description:
+		'Display compact status line for Claude Code hooks with hybrid time+file caching (Beta)',
 	toKebab: true,
 	args: {
 		offline: {
@@ -120,7 +125,8 @@ export const statuslineCommand = define({
 		costSource: {
 			type: 'enum',
 			choices: costSourceChoices,
-			description: 'Session cost source: auto (prefer CC then ccusage), ccusage (always calculate), cc (always use Claude Code cost), both (show both costs)',
+			description:
+				'Session cost source: auto (prefer CC then ccusage), ccusage (always calculate), cc (always use Claude Code cost), both (show both costs)',
 			default: 'auto',
 			negatable: false,
 			toKebab: true,
@@ -139,13 +145,13 @@ export const statuslineCommand = define({
 		contextLowThreshold: {
 			type: 'custom',
 			description: 'Context usage percentage below which status is shown in green (0-100)',
-			parse: value => parseContextThreshold(value),
+			parse: (value) => parseContextThreshold(value),
 			default: DEFAULT_CONTEXT_USAGE_THRESHOLDS.LOW,
 		},
 		contextMediumThreshold: {
 			type: 'custom',
 			description: 'Context usage percentage below which status is shown in yellow (0-100)',
-			parse: value => parseContextThreshold(value),
+			parse: (value) => parseContextThreshold(value),
 			default: DEFAULT_CONTEXT_USAGE_THRESHOLDS.MEDIUM,
 		},
 		config: sharedArgs.config,
@@ -157,7 +163,9 @@ export const statuslineCommand = define({
 
 		// Validate threshold ordering constraint: LOW must be less than MEDIUM
 		if (ctx.values.contextLowThreshold >= ctx.values.contextMediumThreshold) {
-			throw new Error(`Context low threshold (${ctx.values.contextLowThreshold}) must be less than medium threshold (${ctx.values.contextMediumThreshold})`);
+			throw new Error(
+				`Context low threshold (${ctx.values.contextLowThreshold}) must be less than medium threshold (${ctx.values.contextMediumThreshold})`,
+			);
 		}
 
 		// Load configuration and merge with CLI args
@@ -192,7 +200,7 @@ export const statuslineCommand = define({
 		 */
 		const initialSemaphoreState = Result.pipe(
 			Result.succeed(getSemaphore(sessionId)),
-			Result.map(semaphore => semaphore.data),
+			Result.map((semaphore) => semaphore.data),
 			Result.unwrap(undefined),
 		);
 
@@ -226,8 +234,7 @@ export const statuslineCommand = define({
 					try {
 						process.kill(pid, 0); // Signal 0 doesn't kill, just checks if process exists
 						isProcessAlive = true;
-					}
-					catch {
+					} catch {
 						// Process doesn't exist, likely dead
 						isProcessAlive = false;
 					}
@@ -252,8 +259,7 @@ export const statuslineCommand = define({
 					isUpdating: true,
 					pid: currentPid,
 				} as const satisfies SemaphoreType;
-			}
-			else {
+			} else {
 				const currentMtimeForInit = await getFileModifiedTime(hookData.transcript_path);
 				semaphore.data = {
 					date: new Date().toISOString(),
@@ -271,21 +277,26 @@ export const statuslineCommand = define({
 			await Result.try({
 				try: async () => {
 					// Determine session cost based on cost source
-					const { sessionCost, ccCost, ccusageCost } = await (async (): Promise<{ sessionCost?: number; ccCost?: number; ccusageCost?: number }> => {
+					const { sessionCost, ccCost, ccusageCost } = await (async (): Promise<{
+						sessionCost?: number;
+						ccCost?: number;
+						ccusageCost?: number;
+					}> => {
 						const costSource = ctx.values.costSource;
 
 						// Helper function to get ccusage cost
 						const getCcusageCost = async (): Promise<number | undefined> => {
 							return Result.pipe(
 								Result.try({
-									try: async () => loadSessionUsageById(sessionId, {
-										mode: 'auto',
-										offline: mergedOptions.offline,
-									}),
-									catch: error => error,
+									try: async () =>
+										loadSessionUsageById(sessionId, {
+											mode: 'auto',
+											offline: mergedOptions.offline,
+										}),
+									catch: (error) => error,
 								})(),
-								Result.map(sessionCost => sessionCost?.totalCost),
-								Result.inspectError(error => logger.error('Failed to load session data:', error)),
+								Result.map((sessionCost) => sessionCost?.totalCost),
+								Result.inspectError((error) => logger.error('Failed to load session data:', error)),
 								Result.unwrap(undefined),
 							);
 						};
@@ -327,13 +338,14 @@ export const statuslineCommand = define({
 
 					const todayCost = await Result.pipe(
 						Result.try({
-							try: async () => loadDailyUsageData({
-								since: todayStr,
-								until: todayStr,
-								mode: 'auto',
-								offline: mergedOptions.offline,
-							}),
-							catch: error => error,
+							try: async () =>
+								loadDailyUsageData({
+									since: todayStr,
+									until: todayStr,
+									mode: 'auto',
+									offline: mergedOptions.offline,
+								}),
+							catch: (error) => error,
 						})(),
 						Result.map((dailyData) => {
 							if (dailyData.length > 0) {
@@ -342,21 +354,22 @@ export const statuslineCommand = define({
 							}
 							return 0;
 						}),
-						Result.inspectError(error => logger.error('Failed to load daily data:', error)),
+						Result.inspectError((error) => logger.error('Failed to load daily data:', error)),
 						Result.unwrap(0),
 					);
 
 					// Load session block data to find active block
 					const { blockInfo, burnRateInfo } = await Result.pipe(
 						Result.try({
-							try: async () => loadSessionBlockData({
-								mode: 'auto',
-								offline: mergedOptions.offline,
-							}),
-							catch: error => error,
+							try: async () =>
+								loadSessionBlockData({
+									mode: 'auto',
+									offline: mergedOptions.offline,
+								}),
+							catch: (error) => error,
 						})(),
 						Result.map((blocks) => {
-						// Only identify blocks if we have data
+							// Only identify blocks if we have data
 							if (blocks.length === 0) {
 								return { blockInfo: 'No active block', burnRateInfo: '' };
 							}
@@ -375,83 +388,119 @@ export const statuslineCommand = define({
 
 							if (activeBlock != null) {
 								const now = new Date();
-								const remaining = Math.round((activeBlock.endTime.getTime() - now.getTime()) / (1000 * 60));
+								const remaining = Math.round(
+									(activeBlock.endTime.getTime() - now.getTime()) / (1000 * 60),
+								);
 								const blockCost = activeBlock.costUSD;
 
 								const blockInfo = `${formatCurrency(blockCost)} block (${formatRemainingTime(remaining)})`;
 
 								// Calculate burn rate
 								const burnRate = calculateBurnRate(activeBlock);
-								const burnRateInfo = burnRate != null
-									? (() => {
-											const renderEmojiStatus = ctx.values.visualBurnRate === 'emoji' || ctx.values.visualBurnRate === 'emoji-text';
-											const renderTextStatus = ctx.values.visualBurnRate === 'text' || ctx.values.visualBurnRate === 'emoji-text';
-											const costPerHour = burnRate.costPerHour;
-											const costPerHourStr = `${formatCurrency(costPerHour)}/hr`;
+								const burnRateInfo =
+									burnRate != null
+										? (() => {
+												const renderEmojiStatus =
+													ctx.values.visualBurnRate === 'emoji' ||
+													ctx.values.visualBurnRate === 'emoji-text';
+												const renderTextStatus =
+													ctx.values.visualBurnRate === 'text' ||
+													ctx.values.visualBurnRate === 'emoji-text';
+												const costPerHour = burnRate.costPerHour;
+												const costPerHourStr = `${formatCurrency(costPerHour)}/hr`;
 
-											type BurnStatus = 'normal' | 'moderate' | 'high';
+												type BurnStatus = 'normal' | 'moderate' | 'high';
 
-											const burnStatus: BurnStatus = burnRate.tokensPerMinuteForIndicator < 2000
-												? 'normal'
-												: burnRate.tokensPerMinuteForIndicator < 5000
-													? 'moderate'
-													: 'high';
+												const burnStatus: BurnStatus =
+													burnRate.tokensPerMinuteForIndicator < 2000
+														? 'normal'
+														: burnRate.tokensPerMinuteForIndicator < 5000
+															? 'moderate'
+															: 'high';
 
-											const burnStatusMappings: Record<BurnStatus, { emoji: string; textValue: string; coloredString: Formatter }> = {
-												normal: { emoji: '🟢', textValue: 'Normal', coloredString: pc.green },
-												moderate: { emoji: '⚠️', textValue: 'Moderate', coloredString: pc.yellow },
-												high: { emoji: '🚨', textValue: 'High', coloredString: pc.red },
-											};
+												const burnStatusMappings: Record<
+													BurnStatus,
+													{ emoji: string; textValue: string; coloredString: Formatter }
+												> = {
+													normal: { emoji: '🟢', textValue: 'Normal', coloredString: pc.green },
+													moderate: {
+														emoji: '⚠️',
+														textValue: 'Moderate',
+														coloredString: pc.yellow,
+													},
+													high: { emoji: '🚨', textValue: 'High', coloredString: pc.red },
+												};
 
-											const { emoji, textValue, coloredString } = burnStatusMappings[burnStatus];
+												const { emoji, textValue, coloredString } = burnStatusMappings[burnStatus];
 
-											const burnRateOutputSegments: string[] = [
-												coloredString(costPerHourStr),
-											];
+												const burnRateOutputSegments: string[] = [coloredString(costPerHourStr)];
 
-											if (renderEmojiStatus) {
-												burnRateOutputSegments.push(emoji);
-											}
+												if (renderEmojiStatus) {
+													burnRateOutputSegments.push(emoji);
+												}
 
-											if (renderTextStatus) {
-												burnRateOutputSegments.push(coloredString(`(${textValue})`));
-											}
+												if (renderTextStatus) {
+													burnRateOutputSegments.push(coloredString(`(${textValue})`));
+												}
 
-											return ` | 🔥 ${burnRateOutputSegments.join(' ')}`;
-										})()
-									: '';
+												return ` | 🔥 ${burnRateOutputSegments.join(' ')}`;
+											})()
+										: '';
 
 								return { blockInfo, burnRateInfo };
 							}
 
 							return { blockInfo: 'No active block', burnRateInfo: '' };
 						}),
-						Result.inspectError(error => logger.error('Failed to load block data:', error)),
+						Result.inspectError((error) => logger.error('Failed to load block data:', error)),
 						Result.unwrap({ blockInfo: 'No active block', burnRateInfo: '' }),
 					);
 
-					// Calculate context tokens from transcript with model-specific limits
-					const contextInfo = await Result.pipe(
-						Result.try({
-							try: calculateContextTokens(hookData.transcript_path, hookData.model.id, mergedOptions.offline),
-							catch: error => error,
-						}),
-						Result.inspectError(error => logger.debug(`Failed to calculate context tokens: ${error instanceof Error ? error.message : String(error)}`)),
+					// Helper function to format context info with color coding
+					const formatContextInfo = (inputTokens: number, contextLimit: number): string => {
+						const percentage = Math.round((inputTokens / contextLimit) * 100);
+						const color =
+							percentage < ctx.values.contextLowThreshold
+								? pc.green
+								: percentage < ctx.values.contextMediumThreshold
+									? pc.yellow
+									: pc.red;
+						const coloredPercentage = color(`${percentage}%`);
+						const tokenDisplay = inputTokens.toLocaleString();
+						return `${tokenDisplay} (${coloredPercentage})`;
+					};
+
+					// Get context tokens from Claude Code hook data, or fall back to calculating from transcript
+					const contextDataResult =
+						hookData.context_window != null
+							? // Prefer context_window data from Claude Code hook if available
+								Result.succeed({
+									inputTokens: hookData.context_window.total_input_tokens,
+									contextLimit: hookData.context_window.context_window_size,
+								})
+							: // Fall back to calculating context tokens from transcript
+								await Result.try({
+									try: async () =>
+										calculateContextTokens(
+											hookData.transcript_path,
+											hookData.model.id,
+											mergedOptions.offline,
+										),
+									catch: (error) => error,
+								})();
+
+					const contextInfo = Result.pipe(
+						contextDataResult,
+						Result.inspectError((error) =>
+							logger.debug(
+								`Failed to calculate context tokens: ${error instanceof Error ? error.message : String(error)}`,
+							),
+						),
 						Result.map((contextResult) => {
 							if (contextResult == null) {
 								return undefined;
 							}
-							// Format context percentage with color coding using option thresholds
-							const color = contextResult.percentage < ctx.values.contextLowThreshold
-								? pc.green
-								: contextResult.percentage < ctx.values.contextMediumThreshold
-									? pc.yellow
-									: pc.red;
-							const coloredPercentage = color(`${contextResult.percentage}%`);
-
-							// Format token count with thousand separators
-							const tokenDisplay = contextResult.inputTokens.toLocaleString();
-							return `${tokenDisplay} (${coloredPercentage})`;
+							return formatContextInfo(contextResult.inputTokens, contextResult.contextLimit);
 						}),
 						Result.unwrap(undefined),
 					);
@@ -474,7 +523,7 @@ export const statuslineCommand = define({
 					const statusLine = `🤖 ${modelName} | 💰 ${sessionDisplay} session / ${formatCurrency(todayCost)} today / ${blockInfo}${burnRateInfo} | 🧠 ${contextInfo ?? 'N/A'}`;
 					return statusLine;
 				},
-				catch: error => error,
+				catch: (error) => error,
 			})(),
 		);
 
@@ -505,8 +554,7 @@ export const statuslineCommand = define({
 			// If we have a cached output from previous run, use it
 			if (initialSemaphoreState?.lastOutput != null && initialSemaphoreState.lastOutput !== '') {
 				log(initialSemaphoreState.lastOutput);
-			}
-			else {
+			} else {
 				// Fallback minimal output
 				log('❌ Error generating status');
 			}

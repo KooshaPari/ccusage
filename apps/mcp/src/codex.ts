@@ -28,7 +28,7 @@ const codexDailyRowSchema = z.object({
 	reasoningOutputTokens: z.number(),
 	totalTokens: z.number(),
 	costUSD: z.number(),
-	models: z.record(codexModelUsageSchema),
+	models: z.record(z.string(), codexModelUsageSchema),
 });
 
 const codexMonthlyRowSchema = z.object({
@@ -39,7 +39,7 @@ const codexMonthlyRowSchema = z.object({
 	reasoningOutputTokens: z.number(),
 	totalTokens: z.number(),
 	costUSD: z.number(),
-	models: z.record(codexModelUsageSchema),
+	models: z.record(z.string(), codexModelUsageSchema),
 });
 
 // Response schemas for internal parsing only - not exported
@@ -75,7 +75,10 @@ function getCodexInvocation(): CliInvocation {
 	return cachedCodexInvocation;
 }
 
-async function runCodexCliJson(command: 'daily' | 'monthly', parameters: z.infer<typeof codexParametersSchema>): Promise<string> {
+async function runCodexCliJson(
+	command: 'daily' | 'monthly',
+	parameters: z.infer<typeof codexParametersSchema>,
+): Promise<string> {
 	const { executable, prefixArgs } = getCodexInvocation();
 	const cliArgs: string[] = [...prefixArgs, command, '--json'];
 
@@ -97,8 +100,7 @@ async function runCodexCliJson(command: 'daily' | 'monthly', parameters: z.infer
 	}
 	if (parameters.offline === true) {
 		cliArgs.push('--offline');
-	}
-	else if (parameters.offline === false) {
+	} else if (parameters.offline === false) {
 		cliArgs.push('--no-offline');
 	}
 

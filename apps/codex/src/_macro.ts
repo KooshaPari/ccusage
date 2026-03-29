@@ -1,5 +1,4 @@
 import type { LiteLLMModelPricing } from '@ccusage/internal/pricing';
-import process from 'node:process';
 import {
 	createPricingDataset,
 	fetchLiteLLMPricingDataset,
@@ -15,19 +14,14 @@ const CODEX_MODEL_PREFIXES = [
 ];
 
 function isCodexModel(modelName: string, _pricing: LiteLLMModelPricing): boolean {
-	return CODEX_MODEL_PREFIXES.some(prefix => modelName.startsWith(prefix));
+	return CODEX_MODEL_PREFIXES.some((prefix) => modelName.startsWith(prefix));
 }
 
 export async function prefetchCodexPricing(): Promise<Record<string, LiteLLMModelPricing>> {
-	if (process.env.OFFLINE === 'true') {
-		return createPricingDataset();
-	}
-
 	try {
 		const dataset = await fetchLiteLLMPricingDataset();
 		return filterPricingDataset(dataset, isCodexModel);
-	}
-	catch (error) {
+	} catch (error) {
 		console.warn('Failed to prefetch Codex pricing data, proceeding with empty cache.', error);
 		return createPricingDataset();
 	}

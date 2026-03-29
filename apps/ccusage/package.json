@@ -1,7 +1,7 @@
 {
 	"name": "ccusage",
 	"type": "module",
-	"version": "17.1.3",
+	"version": "18.0.10",
 	"description": "Usage analysis tool for Claude Code",
 	"author": "ryoppippi",
 	"license": "MIT",
@@ -9,7 +9,8 @@
 	"homepage": "https://github.com/ryoppippi/ccusage#readme",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ryoppippi/ccusage.git"
+		"url": "git+https://github.com/ryoppippi/ccusage.git",
+		"directory": "apps/ccusage"
 	},
 	"bugs": {
 		"url": "https://github.com/ryoppippi/ccusage/issues"
@@ -32,13 +33,26 @@
 		"config-schema.json",
 		"dist"
 	],
+	"publishConfig": {
+		"bin": {
+			"ccusage": "./dist/index.js"
+		},
+		"exports": {
+			".": "./dist/index.js",
+			"./calculate-cost": "./dist/calculate-cost.js",
+			"./data-loader": "./dist/data-loader.js",
+			"./debug": "./dist/debug.js",
+			"./logger": "./dist/logger.js",
+			"./package.json": "./package.json"
+		}
+	},
 	"engines": {
 		"node": ">=20.19.4"
 	},
 	"scripts": {
 		"build": "pnpm run generate:schema && tsdown",
 		"format": "pnpm run lint --fix",
-		"generate:schema": "OFFLINE=true bun scripts/generate-json-schema.ts",
+		"generate:schema": "bun scripts/generate-json-schema.ts",
 		"lint": "eslint --cache .",
 		"prepack": "pnpm run build && clean-pkg-json",
 		"prepare": "pnpm run generate:schema || true",
@@ -79,7 +93,6 @@
 		"picocolors": "catalog:runtime",
 		"pretty-ms": "catalog:runtime",
 		"publint": "catalog:lint",
-		"sort-package-json": "catalog:release",
 		"string-width": "catalog:runtime",
 		"tinyglobby": "catalog:runtime",
 		"tsdown": "catalog:build",
@@ -89,32 +102,5 @@
 		"valibot": "catalog:runtime",
 		"vitest": "catalog:testing",
 		"xdg-basedir": "catalog:runtime"
-	},
-	"publishConfig": {
-		"bin": {
-			"ccusage": "./dist/index.js"
-		},
-		"exports": {
-			".": "./dist/index.js",
-			"./calculate-cost": "./dist/calculate-cost.js",
-			"./data-loader": "./dist/data-loader.js",
-			"./debug": "./dist/debug.js",
-			"./logger": "./dist/logger.js",
-			"./package.json": "./package.json"
-		}
-	},
-	"devEngines": {
-		"runtime": [
-			{
-				"name": "node",
-				"version": "^24.4.0",
-				"onFail": "download"
-			},
-			{
-				"name": "bun",
-				"version": "^1.2.21",
-				"onFail": "download"
-			}
-		]
 	}
 }

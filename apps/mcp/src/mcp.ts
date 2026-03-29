@@ -189,9 +189,7 @@ export function createMcpServer(options?: LoadOptions): McpServer {
  *
  * @param server - The MCP server instance to start
  */
-export async function startMcpServerStdio(
-	server: McpServer,
-): Promise<void> {
+export async function startMcpServerStdio(server: McpServer): Promise<void> {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
 }
@@ -253,15 +251,12 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.listTools();
 				expect(result.tools).toHaveLength(6);
 
-				const toolNames = result.tools.map(tool => tool.name);
+				const toolNames = result.tools.map((tool) => tool.name);
 				expect(toolNames).toContain('daily');
 				expect(toolNames).toContain('session');
 				expect(toolNames).toContain('monthly');
@@ -291,10 +286,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'daily',
@@ -335,10 +327,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'session',
@@ -377,10 +366,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'monthly',
@@ -419,10 +405,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'blocks',
@@ -464,7 +447,8 @@ if (import.meta.vitest != null) {
 					jsonrpc: '2.0',
 					error: {
 						code: -32000,
-						message: 'Not Acceptable: Client must accept both application/json and text/event-stream',
+						message:
+							'Not Acceptable: Client must accept both application/json and text/event-stream',
 					},
 					id: null,
 				});
@@ -489,7 +473,7 @@ if (import.meta.vitest != null) {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Accept': 'application/json, text/event-stream',
+						Accept: 'application/json, text/event-stream',
 					},
 					body: JSON.stringify({
 						jsonrpc: '2.0',
@@ -511,7 +495,7 @@ if (import.meta.vitest != null) {
 				expect(text).toContain('data: ');
 
 				// Extract the JSON data from the SSE response
-				const dataLine = text.split('\n').find(line => line.startsWith('data: '));
+				const dataLine = text.split('\n').find((line) => line.startsWith('data: '));
 				expect(dataLine).toBeDefined();
 				const data = JSON.parse(dataLine!.replace('data: ', ''));
 
@@ -542,7 +526,7 @@ if (import.meta.vitest != null) {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Accept': 'application/json, text/event-stream',
+						Accept: 'application/json, text/event-stream',
 					},
 					body: JSON.stringify({
 						jsonrpc: '2.0',
@@ -561,7 +545,7 @@ if (import.meta.vitest != null) {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Accept': 'application/json, text/event-stream',
+						Accept: 'application/json, text/event-stream',
 					},
 					body: JSON.stringify({
 						jsonrpc: '2.0',
@@ -581,7 +565,7 @@ if (import.meta.vitest != null) {
 				expect(text).toContain('data: ');
 
 				// Extract the JSON data from the SSE response
-				const dataLine = text.split('\n').find(line => line.startsWith('data: '));
+				const dataLine = text.split('\n').find((line) => line.startsWith('data: '));
 				expect(dataLine).toBeDefined();
 				const data = JSON.parse(dataLine!.replace('data: ', ''));
 
@@ -611,16 +595,20 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
-				// Test with invalid mode enum value
-				await expect(client.callTool({
+				// Test with invalid mode enum value - MCP SDK returns isError response
+				const result = await client.callTool({
 					name: 'daily',
 					arguments: { mode: 'invalid_mode' },
-				})).rejects.toThrow('Invalid enum value');
+				});
+
+				expect(result.isError).toBe(true);
+				expect(result.content).toBeDefined();
+				assert(Array.isArray(result.content));
+				const textContent = result.content[0] as { type: string; text: string };
+				expect(textContent.type).toBe('text');
+				expect(textContent.text).toContain('Invalid');
 
 				await client.close();
 				await server.close();
@@ -644,16 +632,20 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
-				// Test with invalid date format
-				await expect(client.callTool({
+				// Test with invalid date format - MCP SDK returns isError response
+				const result = await client.callTool({
 					name: 'daily',
 					arguments: { since: 'not-a-date', until: '2024-invalid' },
-				})).rejects.toThrow('Date must be in YYYYMMDD format');
+				});
+
+				expect(result.isError).toBe(true);
+				expect(result.content).toBeDefined();
+				assert(Array.isArray(result.content));
+				const textContent = result.content[0] as { type: string; text: string };
+				expect(textContent.type).toBe('text');
+				expect(textContent.text).toContain('Date must be in YYYYMMDD format');
 
 				await client.close();
 				await server.close();
@@ -677,16 +669,20 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
-				// Test with unknown tool name
-				await expect(client.callTool({
+				// Test with unknown tool name - MCP SDK returns isError response
+				const result = await client.callTool({
 					name: 'unknown-tool',
 					arguments: {},
-				})).rejects.toThrow('Tool unknown-tool not found');
+				});
+
+				expect(result.isError).toBe(true);
+				expect(result.content).toBeDefined();
+				assert(Array.isArray(result.content));
+				const textContent = result.content[0] as { type: string; text: string };
+				expect(textContent.type).toBe('text');
+				expect(textContent.text).toContain('Tool unknown-tool not found');
 
 				await client.close();
 				await server.close();
@@ -704,10 +700,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'daily',
@@ -739,10 +732,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'daily',
@@ -770,10 +760,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				const result = await client.callTool({
 					name: 'daily',
@@ -812,10 +799,7 @@ if (import.meta.vitest != null) {
 
 				const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-				await Promise.all([
-					client.connect(clientTransport),
-					server.connect(serverTransport),
-				]);
+				await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
 
 				// Call multiple tools concurrently
 				const [dailyResult, sessionResult, monthlyResult, blocksResult] = await Promise.all([

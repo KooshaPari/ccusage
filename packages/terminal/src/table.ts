@@ -5,6 +5,55 @@ import pc from 'picocolors';
 import stringWidth from 'string-width';
 
 /**
+ * Default locale used for date formatting when not specified
+ * en-CA provides YYYY-MM-DD ISO format
+ */
+const DEFAULT_LOCALE = 'en-CA';
+
+/**
+ * Creates a date parts formatter with the specified timezone and locale
+ * @param timezone - Timezone to use
+ * @param locale - Locale to use for formatting
+ * @returns Intl.DateTimeFormat instance
+ */
+function createDatePartsFormatter(
+	timezone: string | undefined,
+	locale: string,
+): Intl.DateTimeFormat {
+	return new Intl.DateTimeFormat(locale, {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		timeZone: timezone,
+	});
+}
+
+/**
+ * Formats a date string to compact format with year on first line and month-day on second
+ * @param dateStr - Input date string (YYYY-MM-DD or ISO timestamp)
+ * @param timezone - Timezone to use for formatting (pass undefined to use system timezone)
+ * @param locale - Locale to use for formatting (defaults to sv-SE for YYYY-MM-DD format)
+ * @returns Formatted date string with newline separator (YYYY\nMM-DD)
+ */
+export function formatDateCompact(dateStr: string, timezone?: string, locale?: string): string {
+	// Check if input is in YYYY-MM-DD format
+	const isSimpleDateFormat = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+	// For YYYY-MM-DD format, append T00:00:00 to parse as local date
+	// Without this, new Date('YYYY-MM-DD') interprets as UTC midnight
+	const date = isSimpleDateFormat
+		? timezone != null
+			? new Date(`${dateStr}T00:00:00Z`)
+			: new Date(`${dateStr}T00:00:00`)
+		: new Date(dateStr);
+	const formatter = createDatePartsFormatter(timezone, locale ?? DEFAULT_LOCALE);
+	const parts = formatter.formatToParts(date);
+	const year = parts.find((p) => p.type === 'year')?.value ?? '';
+	const month = parts.find((p) => p.type === 'month')?.value ?? '';
+	const day = parts.find((p) => p.type === 'day')?.value ?? '';
+	return `${year}\n${month}-${day}`;
+}
+
+/**
  * Horizontal alignment options for table cells
  */
 export type TableCellAlign = 'left' | 'right' | 'center';
@@ -79,7 +128,7 @@ export class ResponsiveTable {
 	 * @returns Filtered row
 	 */
 	private filterRowToCompact(row: TableRow, compactIndices: number[]): TableRow {
-		return compactIndices.map(index => row[index] ?? '');
+		return compactIndices.map((index) => row[index] ?? '');
 	}
 
 	/**
@@ -107,7 +156,9 @@ export class ResponsiveTable {
 			const index = this.head.indexOf(compactHeader);
 			if (index < 0) {
 				// Log warning for debugging configuration issues
-				this.logger(`Warning: Compact header "${compactHeader}" not found in table headers [${this.head.join(', ')}]. Using first column as fallback.`);
+				this.logger(
+					`Warning: Compact header "${compactHeader}" not found in table headers [${this.head.join(', ')}]. Using first column as fallback.`,
+				);
 				return 0; // fallback to first column if not found
 			}
 			return index;
@@ -129,34 +180,39 @@ export class ResponsiveTable {
 	 */
 	toString(): string {
 		// Check environment variable first, then process.stdout.columns, then default
-		const terminalWidth = Number.parseInt(process.env.COLUMNS ?? '', 10) || process.stdout.columns || 120;
+		const terminalWidth =
+			Number.parseInt(process.env.COLUMNS ?? '', 10) || process.stdout.columns || 120;
 
 		// Determine if we should use compact mode
-		this.compactMode = this.forceCompact || (terminalWidth < this.compactThreshold && this.compactHead != null);
+		this.compactMode =
+			this.forceCompact || (terminalWidth < this.compactThreshold && this.compactHead != null);
 
 		// Get current table configuration
 		const { head, colAligns } = this.getCurrentTableConfig();
 		const compactIndices = this.getCompactIndices();
 
 		// Calculate actual content widths first (excluding separator rows)
-		const dataRows = this.rows.filter(row => !this.isSeparatorRow(row));
+		const dataRows = this.rows.filter((row) => !this.isSeparatorRow(row));
 
 		// Filter rows to compact mode if needed
 		const processedDataRows = this.compactMode
-			? dataRows.map(row => this.filterRowToCompact(row, compactIndices))
+			? dataRows.map((row) => this.filterRowToCompact(row, compactIndices))
 			: dataRows;
 
-		const allRows = [head.map(String), ...processedDataRows.map(row => row.map((cell) => {
-			if (typeof cell === 'object' && cell != null && 'content' in cell) {
-				return String(cell.content);
-			}
-			return String(cell ?? '');
-		}))];
+		const allRows = [
+			head.map(String),
+			...processedDataRows.map((row) =>
+				row.map((cell) => {
+					if (typeof cell === 'object' && cell != null && 'content' in cell) {
+						return String(cell.content);
+					}
+					return String(cell ?? '');
+				}),
+			),
+		];
 
 		const contentWidths = head.map((_, colIndex) => {
-			const maxLength = Math.max(
-				...allRows.map(row => stringWidth(String(row[colIndex] ?? ''))),
-			);
+			const maxLength = Math.max(...allRows.map((row) => stringWidth(String(row[colIndex] ?? ''))));
 			return maxLength;
 		});
 
@@ -171,8 +227,7 @@ export class ResponsiveTable {
 			// For numeric columns, ensure generous width to prevent truncation
 			if (align === 'right') {
 				return Math.max(width + 3, 11); // At least 11 chars for numbers, +3 padding
-			}
-			else if (index === 1) {
+			} else if (index === 1) {
 				// Models column - can be longer
 				return Math.max(width + 2, 15);
 			}
@@ -192,14 +247,11 @@ export class ResponsiveTable {
 				// Apply minimum widths based on column type
 				if (align === 'right') {
 					adjustedWidth = Math.max(adjustedWidth, 10);
-				}
-				else if (index === 0) {
+				} else if (index === 0) {
 					adjustedWidth = Math.max(adjustedWidth, 10);
-				}
-				else if (index === 1) {
+				} else if (index === 1) {
 					adjustedWidth = Math.max(adjustedWidth, 12);
-				}
-				else {
+				} else {
 					adjustedWidth = Math.max(adjustedWidth, 8);
 				}
 
@@ -220,11 +272,15 @@ export class ResponsiveTable {
 				if (this.isSeparatorRow(row)) {
 					// Skip separator rows - cli-table3 will handle borders automatically
 					continue;
-				}
-				else {
+				} else {
 					// Use compact date format for first column if dateFormatter available
 					let processedRow = row.map((cell, index) => {
-						if (index === 0 && this.dateFormatter != null && typeof cell === 'string' && this.isDateString(cell)) {
+						if (
+							index === 0 &&
+							this.dateFormatter != null &&
+							typeof cell === 'string' &&
+							this.isDateString(cell)
+						) {
 							return this.dateFormatter(cell);
 						}
 						return cell;
@@ -240,8 +296,7 @@ export class ResponsiveTable {
 			}
 
 			return table.toString();
-		}
-		else {
+		} else {
 			// Use generous column widths with normal date format
 			const table = new Table({
 				head,
@@ -257,8 +312,7 @@ export class ResponsiveTable {
 				if (this.isSeparatorRow(row)) {
 					// Skip separator rows - cli-table3 will handle borders automatically
 					continue;
-				}
-				else {
+				} else {
 					// Filter to compact columns if in compact mode
 					const processedRow = this.compactMode
 						? this.filterRowToCompact(row, compactIndices)
@@ -322,14 +376,33 @@ export function formatCurrency(amount: number): string {
  * @returns Shortened model name (e.g., "sonnet-4" or "sonnet-4-5") or original if pattern doesn't match
  */
 function formatModelName(modelName: string): string {
-	// Extract model type from full model name
+	// Handle [pi] prefix - preserve prefix, format the rest
+	const piMatch = modelName.match(/^\[pi\] (.+)$/);
+	if (piMatch?.[1] != null) {
+		return `[pi] ${formatModelName(piMatch[1])}`;
+	}
+
+	// Handle anthropic/ prefix with dot notation (e.g., "anthropic/claude-opus-4.5" -> "opus-4.5")
+	const anthropicMatch = modelName.match(/^anthropic\/claude-(\w+)-([\d.]+)$/);
+	if (anthropicMatch != null) {
+		return `${anthropicMatch[1]}-${anthropicMatch[2]}`;
+	}
+
+	// Extract model type from full model name with date suffix (must check before no-date pattern)
 	// e.g., "claude-sonnet-4-20250514" -> "sonnet-4"
 	// e.g., "claude-opus-4-20250514" -> "opus-4"
 	// e.g., "claude-sonnet-4-5-20250929" -> "sonnet-4-5"
-	const match = modelName.match(/claude-(\w+)-([\d-]+)-(\d{8})/);
+	const match = modelName.match(/^claude-(\w+)-([\d-]+)-(\d{8})$/);
 	if (match != null) {
 		return `${match[1]}-${match[2]}`;
 	}
+
+	// Handle claude- without date suffix (e.g., "claude-opus-4-5" -> "opus-4-5")
+	const noDateMatch = modelName.match(/^claude-(\w+)-([\d-]+)$/);
+	if (noDateMatch != null) {
+		return `${noDateMatch[1]}-${noDateMatch[2]}`;
+	}
+
 	// Return original if pattern doesn't match
 	return modelName;
 }
@@ -355,7 +428,10 @@ export function formatModelsDisplay(models: string[]): string {
 export function formatModelsDisplayMultiline(models: string[]): string {
 	// Format array of models for display with newlines and bullet points
 	const uniqueModels = uniq(models.map(formatModelName));
-	return uniqueModels.sort().map(model => `- ${model}`).join('\n');
+	return uniqueModels
+		.sort()
+		.map((model) => `- ${model}`)
+		.join('\n');
 }
 
 /**
@@ -388,8 +464,11 @@ export function pushBreakdownRows(
 		}
 
 		// Add data columns with gray styling
-		const totalTokens = breakdown.inputTokens + breakdown.outputTokens
-			+ breakdown.cacheCreationTokens + breakdown.cacheReadTokens;
+		const totalTokens =
+			breakdown.inputTokens +
+			breakdown.outputTokens +
+			breakdown.cacheCreationTokens +
+			breakdown.cacheReadTokens;
 
 		row.push(
 			pc.gray(formatNumber(breakdown.inputTokens)),
@@ -463,21 +542,9 @@ export function createUsageReportTable(config: UsageReportConfig): ResponsiveTab
 		'right',
 	];
 
-	const compactHeaders = [
-		config.firstColumnName,
-		'Models',
-		'Input',
-		'Output',
-		'Cost (USD)',
-	];
+	const compactHeaders = [config.firstColumnName, 'Models', 'Input', 'Output', 'Cost (USD)'];
 
-	const compactAligns: TableCellAlign[] = [
-		'left',
-		'left',
-		'right',
-		'right',
-		'right',
-	];
+	const compactAligns: TableCellAlign[] = ['left', 'left', 'right', 'right', 'right'];
 
 	// Add Last Activity column for session reports
 	if (config.includeLastActivity ?? false) {
@@ -511,7 +578,8 @@ export function formatUsageDataRow(
 	data: UsageData,
 	lastActivity?: string,
 ): (string | number)[] {
-	const totalTokens = data.inputTokens + data.outputTokens + data.cacheCreationTokens + data.cacheReadTokens;
+	const totalTokens =
+		data.inputTokens + data.outputTokens + data.cacheCreationTokens + data.cacheReadTokens;
 
 	const row: (string | number)[] = [
 		firstColumnValue,
@@ -537,8 +605,12 @@ export function formatUsageDataRow(
  * @param includeLastActivity - Whether to include an empty last activity column
  * @returns Formatted totals row
  */
-export function formatTotalsRow(totals: UsageData, includeLastActivity = false): (string | number)[] {
-	const totalTokens = totals.inputTokens + totals.outputTokens + totals.cacheCreationTokens + totals.cacheReadTokens;
+export function formatTotalsRow(
+	totals: UsageData,
+	includeLastActivity = false,
+): (string | number)[] {
+	const totalTokens =
+		totals.inputTokens + totals.outputTokens + totals.cacheCreationTokens + totals.cacheReadTokens;
 
 	const row: (string | number)[] = [
 		pc.yellow('Total'),
@@ -908,9 +980,7 @@ if (import.meta.vitest != null) {
 
 		it('handles edge cases', () => {
 			expect(formatNumber(Number.MAX_SAFE_INTEGER)).toBe('9,007,199,254,740,991');
-			expect(formatNumber(Number.MIN_SAFE_INTEGER)).toBe(
-				'-9,007,199,254,740,991',
-			);
+			expect(formatNumber(Number.MIN_SAFE_INTEGER)).toBe('-9,007,199,254,740,991');
 		});
 	});
 
@@ -959,7 +1029,11 @@ if (import.meta.vitest != null) {
 		});
 
 		it('removes duplicates and sorts with bullet points', () => {
-			const models = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514'];
+			const models = [
+				'claude-sonnet-4-20250514',
+				'claude-opus-4-20250514',
+				'claude-sonnet-4-20250514',
+			];
 			expect(formatModelsDisplayMultiline(models)).toBe('- opus-4\n- sonnet-4');
 		});
 
@@ -977,8 +1051,58 @@ if (import.meta.vitest != null) {
 		});
 
 		it('formats mixed model versions', () => {
-			const models = ['claude-sonnet-4-20250514', 'claude-sonnet-4-5-20250929', 'claude-opus-4-1-20250805'];
+			const models = [
+				'claude-sonnet-4-20250514',
+				'claude-sonnet-4-5-20250929',
+				'claude-opus-4-1-20250805',
+			];
 			expect(formatModelsDisplayMultiline(models)).toBe('- opus-4-1\n- sonnet-4\n- sonnet-4-5');
+		});
+
+		it('formats pi-agent prefixed models', () => {
+			expect(formatModelsDisplayMultiline(['[pi] claude-opus-4-5'])).toBe('- [pi] opus-4-5');
+		});
+
+		it('formats anthropic/ prefixed models with dot notation', () => {
+			expect(formatModelsDisplayMultiline(['anthropic/claude-opus-4.5'])).toBe('- opus-4.5');
+		});
+
+		it('formats models without date suffix', () => {
+			expect(formatModelsDisplayMultiline(['claude-opus-4-5'])).toBe('- opus-4-5');
+			expect(formatModelsDisplayMultiline(['claude-haiku-4-5'])).toBe('- haiku-4-5');
+		});
+
+		it('formats pi-agent model with anthropic prefix', () => {
+			expect(formatModelsDisplayMultiline(['[pi] anthropic/claude-opus-4.5'])).toBe(
+				'- [pi] opus-4.5',
+			);
+		});
+	});
+
+	describe('formatDateCompact', () => {
+		it('should format date to compact format with newline', () => {
+			const result = formatDateCompact('2024-08-04', undefined, 'en-US');
+			expect(result).toBe('2024\n08-04');
+		});
+
+		it('should handle timezone parameter', () => {
+			const result = formatDateCompact('2024-08-04T12:00:00Z', 'UTC', 'en-US');
+			expect(result).toBe('2024\n08-04');
+		});
+
+		it('should handle YYYY-MM-DD format dates', () => {
+			const result = formatDateCompact('2024-08-04', undefined, 'en-US');
+			expect(result).toBe('2024\n08-04');
+		});
+
+		it('should handle timezone with YYYY-MM-DD format', () => {
+			const result = formatDateCompact('2024-08-04', 'UTC', 'en-US');
+			expect(result).toBe('2024\n08-04');
+		});
+
+		it('should use default locale when not specified', () => {
+			const result = formatDateCompact('2024-08-04');
+			expect(result).toBe('2024\n08-04');
 		});
 	});
 }

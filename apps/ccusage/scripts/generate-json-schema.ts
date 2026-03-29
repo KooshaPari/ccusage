@@ -115,8 +115,8 @@ function createConfigSchemaJson() {
 	for (const [commandName, command] of subCommandUnion) {
 		const commandExcludes = COMMAND_EXCLUDE_KEYS[commandName] ?? [];
 		commandSchemas[commandName] = Object.fromEntries(
-			Object.entries(command.args as Record<string, any>).filter(([key]) =>
-				!EXCLUDE_KEYS.includes(key) && !commandExcludes.includes(key),
+			Object.entries(command.args as Record<string, any>).filter(
+				([key]) => !EXCLUDE_KEYS.includes(key) && !commandExcludes.includes(key),
 			),
 		);
 	}
@@ -151,7 +151,7 @@ function createConfigSchemaJson() {
 						markdownDescription: 'JSON Schema URL for validation and autocomplete',
 					},
 					defaults: {
-						...(defaultsJsonSchema),
+						...defaultsJsonSchema,
 						description: 'Default values for all commands',
 						markdownDescription: 'Default values for all commands',
 					},
@@ -188,17 +188,17 @@ function createConfigSchemaJson() {
 /**
  * Generate JSON Schema and write to files
  */
-async function runLint(files: string[]) {
+async function runFormat(files: string[]) {
 	return Result.try({
-		try: $`bun run lint --fix ${files}`,
-		catch: error => error,
+		try: $`pnpm exec oxfmt ${files}`,
+		catch: (error) => error,
 	});
 }
 
 async function writeFile(path: string, content: string) {
 	const attempt = Result.try({
 		try: async () => Bun.write(path, content),
-		catch: error => error,
+		catch: (error) => error,
 	});
 	return attempt();
 }
@@ -209,12 +209,12 @@ async function readFile(path: string): Promise<Result.Result<string, any>> {
 			const file = Bun.file(path);
 			return file.text();
 		},
-		catch: error => error,
+		catch: (error) => error,
 	})();
 }
 
 async function copySchemaToDocsPublic() {
-	const gitRoot = await $`git rev-parse --show-toplevel`.text().then(text => text.trim());
+	const gitRoot = await $`git rev-parse --show-toplevel`.text().then((text) => text.trim());
 	await $`cp ${SCHEMA_FILENAME} ${gitRoot}/docs/public/${SCHEMA_FILENAME}`;
 }
 
@@ -225,7 +225,7 @@ async function generateJsonSchema() {
 	const schemaObject = Result.pipe(
 		Result.try({
 			try: () => createConfigSchemaJson(),
-			catch: error => error,
+			catch: (error) => error,
 		})(),
 		Result.inspectError((error) => {
 			logger.error('Error creating JSON Schema:', error);
@@ -237,7 +237,7 @@ async function generateJsonSchema() {
 	// Check if existing root schema is identical to avoid unnecessary writes
 	const existingRootSchema = await Result.pipe(
 		readFile(SCHEMA_FILENAME),
-		Result.map(content => JSON.parse(content) as unknown),
+		Result.map((content) => JSON.parse(content) as unknown),
 		Result.unwrap(''),
 	);
 
@@ -270,17 +270,17 @@ async function generateJsonSchema() {
 	// Copy to docs/public using Bun shell
 	await copySchemaToDocsPublic();
 
-	// Run lint on the root schema file that was changed
+	// Run format on the root schema file that was changed
 	await Result.pipe(
 		Result.try({
-			try: runLint([SCHEMA_FILENAME]),
+			try: runFormat([SCHEMA_FILENAME]),
 			safe: true,
 		}),
 		Result.inspectError((error) => {
-			logger.error('Failed to lint generated files:', error);
+			logger.error('Failed to format generated files:', error);
 			process.exit(1);
 		}),
-		Result.inspect(() => logger.info('✓ Linted generated files')),
+		Result.inspect(() => logger.info('✓ Formatted generated files')),
 	);
 
 	logger.info('JSON Schema generation completed successfully!');

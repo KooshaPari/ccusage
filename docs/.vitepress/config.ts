@@ -6,7 +6,9 @@ import { defineConfig } from 'vitepress';
 import { groupIconMdPlugin, groupIconVitePlugin } from 'vitepress-plugin-group-icons';
 import llmstxt from 'vitepress-plugin-llms';
 
-const typedocSidebarJson = fs.readFileSync(path.join(import.meta.dirname, '../api/typedoc-sidebar.json'));
+const typedocSidebarJson = fs.readFileSync(
+	path.join(import.meta.dirname, '../api/typedoc-sidebar.json'),
+);
 const typedocSidebar = JSON.parse(typedocSidebarJson.toString()) as DefaultTheme.SidebarItem[];
 
 export default defineConfig({
@@ -23,7 +25,13 @@ export default defineConfig({
 		['meta', { property: 'og:locale', content: 'en' }],
 		['meta', { property: 'og:title', content: 'ccusage | Claude Code Usage Analysis' }],
 		['meta', { property: 'og:site_name', content: 'ccusage' }],
-		['meta', { property: 'og:image', content: 'https://cdn.jsdelivr.net/gh/ryoppippi/ccusage@main/docs/public/logo.png' }],
+		[
+			'meta',
+			{
+				property: 'og:image',
+				content: 'https://cdn.jsdelivr.net/gh/ryoppippi/ccusage@main/docs/public/logo.png',
+			},
+		],
 		['meta', { property: 'og:url', content: 'https://github.com/ryoppippi/ccusage' }],
 	],
 
@@ -64,7 +72,7 @@ export default defineConfig({
 						{ text: 'Monthly Reports', link: '/guide/monthly-reports' },
 						{ text: 'Session Reports', link: '/guide/session-reports' },
 						{ text: 'Blocks Reports', link: '/guide/blocks-reports' },
-						{ text: 'Live Monitoring', link: '/guide/live-monitoring' },
+						{ text: 'Live Monitoring (Removed)', link: '/guide/live-monitoring' },
 					],
 				},
 				{
@@ -75,6 +83,10 @@ export default defineConfig({
 						{ text: 'Monthly Report', link: '/guide/codex/monthly' },
 						{ text: 'Session Report', link: '/guide/codex/session' },
 					],
+				},
+				{
+					text: 'OpenCode (Beta)',
+					items: [{ text: 'Overview', link: '/guide/opencode/' }],
 				},
 				{
 					text: 'Configuration',
@@ -108,10 +120,7 @@ export default defineConfig({
 			'/api/': [
 				{
 					text: 'API Reference',
-					items: [
-						{ text: 'Overview', link: '/api/' },
-						...typedocSidebar,
-					],
+					items: [{ text: 'Overview', link: '/api/' }, ...typedocSidebar],
 				},
 			],
 		},
@@ -169,7 +178,8 @@ export default defineConfig({
 
 	markdown: {
 		config(md) {
-			md.use(groupIconMdPlugin);
+			// eslint-disable-next-line ts/no-unsafe-argument -- markdown-it type mismatch between vitepress and plugin
+			md.use(groupIconMdPlugin as any);
 		},
 	},
 });

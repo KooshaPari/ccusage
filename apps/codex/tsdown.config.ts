@@ -12,6 +12,7 @@ export default defineConfig({
 	dts: false,
 	publint: true,
 	unused: true,
+	fixedExtension: false,
 	nodeProtocol: true,
 	plugins: [
 		Macros({
@@ -21,5 +22,4 @@ export default defineConfig({
 	define: {
 		'import.meta.vitest': 'undefined',
 	},
-	onSuccess: 'sort-package-json',
 });
